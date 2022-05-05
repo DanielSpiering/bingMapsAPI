@@ -1,0 +1,53 @@
+﻿body {
+    margin: 0;
+    padding: 0;
+    overflow: scroll;
+    font-family: 'Segoe UI',Helvetica,Arial,Sans-Serif
+}
+.searchbar{
+    position: absolute;
+    z-index:10;
+    background-color:lightgray;
+    
+
+}
+button{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;   
+}
+
+label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+#select {
+    padding:8px 10px;
+    margin-top: 10px;   
+}
+.locate-button {
+    position:absolute;
+    z-index: 20;
+    right: 10px;
+    margin-top: 175px;   
+}
+#locate {
+    padding: 20px 16px;
+}
+#display-search-results {
+    max-height: 100px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+#directions-panel {
+    max-height: 200px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.local-storage {
+    background-color: lightgray;
+}

@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>loadmapasyncHTML</title>
+    <link rel="stylesheet" href="stylesheet.css" />
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
+    <script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?key=Ai6xwfrpBbIAI-GuuF37V71P4LFid7adlUeqQN9P2GJ32em6ohTUYVu9JmsFyVLu'></script>   
+</head>
+
+<body onload='loadMapScenario();'>
+
+    <div id='printoutPanel'></div>
+    <div class="local-storage">
+        <div id="previously-visited"></div>
+        <button id="clear">Clear Local Storage</button>
+    </div>
+    
+    <div id="display-search-results">See search results here.</div> 
+    <div id='myMap' style='width: 100vw; height: 100vh;'>
+        <div class="searchbar">
+            <label for="points">Points Of Interest</label>
+            <select name="points" id="menu">
+                <option value="hospitals">Hospitals</option>
+                <option value="policestations">Police Stations</option>
+                <option value="firestations">Fire Stations</option>
+                <option value="gasstations">Gas Station</option>
+                <option value="grocerystores">Grocery Stores</option>
+                <option value="restaurants">Restaurants</option>
+                <option value="attractions">Attractions</option>
+                <option value="banks">Banks</option>
+                <option value="transit">Transit Stations</option>
+                <option value="churches">Churches</option>
+                <option value="schools">Schools</option>
+                <option value="accommodations">Hotels</option>
+            </select>
+            <button id="select">Select</button>
+            <button id="polygon">make polygon </button>
+        </div>
+        <div class="locate-button">
+            <button id="locate">Locate Me</button>
+        </div>
+
+    </div>
+    <div id="directions-panel">
+
+    </div>
+    <script src="javascript.js"></script>
+</body>
+</html>
