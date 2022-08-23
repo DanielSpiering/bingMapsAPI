@@ -1,17 +1,17 @@
-﻿var map;
+var map;
 var drawingManager;
 var lat;
 var long;
-var polygonLeftLat;
-var polygonLeftLat;
-var polygonRightLong;
-var polygonRightLong;
 var searchQuery;
 var key = 'Ai6xwfrpBbIAI-GuuF37V71P4LFid7adlUeqQN9P2GJ32em6ohTUYVu9JmsFyVLu';
 var locationInfo = [];
 var pushpins = [];
-var polygonlocations;
 var polygonOn = false;
+var routeOn = false;
+var directionsManager;
+var requestUrl;
+var listHTML;
+var storageHTML;
 
 const selectButton = document.querySelector('#select');
 const locateButton = document.querySelector('#locate');
@@ -19,64 +19,10 @@ const clearButton = document.querySelector('#clear');
 const displayDiv = document.querySelector('#display-search-results');
 const storageDiv = document.querySelector('#previously-visited');
 
+
 selectButton.addEventListener('click', buttonSelect)
 locateButton.addEventListener('click', buttonLocate)
 clearButton.addEventListener('click', buttonClear)
-
-const button = document.querySelector('#polygon');
-button.addEventListener('click', extra);
-function getLatlng(e) {
-
-    if (e.targetType == "map") {
-
-        var point = new Microsoft.Maps.Point(e.getX(), e.getY());
-        var locTemp = e.target.tryPixelToLocation(point);
-        var location = new Microsoft.Maps.Location(locTemp.latitude, locTemp.longitude);
-        //alert(locTemp.latitude + "&" + locTemp.longitude);
-
-
-        var pin = new Microsoft.Maps.Pushpin(location, { 'draggable': false });
-
-        map.entities.push(pin);
-        //alert("Done");
-
-    }//end if        
-}//end fnction
-function extra(e) {
-    e.preventDefault();
-    makePolygon();
-}
-function makePolygon() {
-    polygonOn = true;
-    var i = 0, entity;
-    while (i < map.entities.getLength()) {
-        entity = map.entities.get(i);
-        if (i == 0) {
-            location1 = new Microsoft.Maps.Location(entity.geometry.y, entity.geometry.x);
-            polygonLeftLat = entity.geometry.y;
-            polygonLeftLong = entity.geometry.x;
-
-        } else if (i == 1) {
-            location2 = new Microsoft.Maps.Location(entity.geometry.y, entity.geometry.x);
-        } else if (i == 2) {
-            location3 = new Microsoft.Maps.Location(entity.geometry.y, entity.geometry.x);
-            polygonRightLat = entity.geometry.y;
-            polygonRightLong = entity.geometry.x;
-        } else if (i == 3) {
-            location4 = new Microsoft.Maps.Location(entity.geometry.y, entity.geometry.x);
-        }
-        i += 1;
-    }
-
-    polygon = new Microsoft.Maps.Polygon([
-        new Microsoft.Maps.Location(location1.latitude, location1.longitude),
-        new Microsoft.Maps.Location(location2.latitude, location2.longitude),
-        new Microsoft.Maps.Location(location3.latitude, location3.longitude),
-        new Microsoft.Maps.Location(location4.latitude, location4.longitude)], null);
-    map.entities.push(polygon);
-}
-
-
 
 function buttonClear(e) {
     e.preventDefault();
@@ -93,6 +39,7 @@ function buttonSelect(e) {
     getPOIData();
 
 }
+
 function getCoordinates() {
     //Request the user's location
     navigator.geolocation.getCurrentPosition(function (position) {
@@ -103,7 +50,7 @@ function getCoordinates() {
         long = position.coords.longitude;
 
         //Add a pushpin at the user's location.
-        var locationPin = new Microsoft.Maps.Pushpin(loc);
+        var locationPin = new Microsoft.Maps.Pushpin(loc, {color: 'green'});
         map.entities.push(locationPin);
 
         //Center the map on the user's location.
@@ -124,33 +71,20 @@ function loadMapScenario() {
         showLocateMeButton: false,
         zoom: 13
     });  
-    ////Load the DrawingTools module
-    //Microsoft.Maps.loadModule('Microsoft.Maps.DrawingTools', function () {
-    //    //Create an instance of the DrawingTools class and bind it to the map.
-    //    var tools = new Microsoft.Maps.DrawingTools(map);
-    //
-    //    //Show the drawing toolbar and enable editting on the map.
-    //    tools.showDrawingManager(function (manager) {
-    //        //Store a reference to the drawing manager as it will be useful later.
-    //        drawingManager = manager;
-    //    })
-    //});
-    Microsoft.Maps.Events.addHandler(map, 'dblclick', getLatlng);
+    
     updateLocalStorage();
     var test = map.getCenter();
     lat = test.latitude;
     long = test.longitude;
 }//end function
 
-var requestUrl;
+
 function getPOIData() {
     //request variables
     const ajax = new XMLHttpRequest;  //asynchronous javascript and xml
-    if (polygonOn == false) {
-         requestUrl = `https://dev.virtualearth.net/REST/v1/LocalSearch/?query=${searchQuery}&userLocation=${lat},${long}&key=${key}`;  //location of api
-    } else {
-         requestUrl = `https://dev.virtualearth.net/REST/v1/LocalSearch/?query=${searchQuery}&userMapView=${polygonLeftLat,polygonLeftLong,polygonRightLat,polygonRightLong}&key=${key}`;  //location of api
-    }
+    
+    requestUrl = `https://dev.virtualearth.net/REST/v1/LocalSearch/?query=${searchQuery}&userLocation=${lat},${long}&key=${key}`;  //location of api
+    
     
     const requestMethod = 'GET';  //give me data
     const asyncRequest = true;  //dont hold up wepage when waiting response
@@ -199,18 +133,18 @@ function storeLocationInfo(responseData) {
     printLocationInfo();
 }//end function
 function printLocationInfo() {
-    //print the most prevalent to a text box above the map
-    var infoString = "";
-    displayDiv.innerHTML = "";
+    listHTML = ['<table>'];
     for (var index = 0; index < locationInfo.length; index++) {
-        infoString += index+1+": ";
-        infoString += "NAME: " + locationInfo[index].name+", ";
-        infoString += "ADDRESS: " + locationInfo[index].address+", ";
-        infoString += "PHONE NUMBER: " + locationInfo[index].phoneNumber+"<br/>";
-        //infoString += "LATITUDE: " +locationInfo[index].latitude+", ";
-        //infoString += "LONGITUDE: " + locationInfo[index].longitude+"<br/>";                 
-    }//end for
-    displayDiv.innerHTML = infoString;
+        listHTML.push(`<tr><td><button onclick="storeFavorite(${index})" id="favorite">Favorite</button></td><td>${index + 1}) </td>`);
+        listHTML.push(`<td><a onclick="displayDirections( ${locationInfo[index].latitude}, ${locationInfo[index].longitude})" href="#display-search-results"> ${locationInfo[index].name} --- ${locationInfo[index].address} --- ${locationInfo[index].phoneNumber} </a></td>`);
+
+    }
+    //Add closing tag to HTML table 
+    listHTML.push('</table>');
+
+    //Display new results onto HTML 
+    displayDiv.innerHTML = listHTML.join('');
+    
     addPushpins();
 }//end function
 function addPushpins() {
@@ -223,47 +157,33 @@ function addPushpins() {
         
         var pushpin = new Microsoft.Maps.Pushpin({ latitude: locationInfo[index].latitude, longitude: locationInfo[index].longitude }, { title: locationInfo[index].name, text: `${index + 1}`,id:`pushpin${index}` });
         pushpins[index] = pushpin;       
-        map.entities.push(pushpins[index]);       
+        map.entities.push(pushpins[index]);
+        
     }//end for 
 
     //set up a click event for each pushpin
-    Microsoft.Maps.Events.addHandler(pushpins[0], 'click', function () { storePushpinLocation(0); });
-    Microsoft.Maps.Events.addHandler(pushpins[1], 'click', function () { storePushpinLocation(1); });
-    Microsoft.Maps.Events.addHandler(pushpins[2], 'click', function () { storePushpinLocation(2); });
-    Microsoft.Maps.Events.addHandler(pushpins[3], 'click', function () { storePushpinLocation(3); });
-    Microsoft.Maps.Events.addHandler(pushpins[4], 'click', function () { storePushpinLocation(4); });
-    Microsoft.Maps.Events.addHandler(pushpins[5], 'click', function () { storePushpinLocation(5); });
-    Microsoft.Maps.Events.addHandler(pushpins[6], 'click', function () { storePushpinLocation(6); });
-    Microsoft.Maps.Events.addHandler(pushpins[7], 'click', function () { storePushpinLocation(7); });
-    Microsoft.Maps.Events.addHandler(pushpins[8], 'click', function () { storePushpinLocation(8); });
-    Microsoft.Maps.Events.addHandler(pushpins[9], 'click', function () { storePushpinLocation(9); });
-    //for each pushpin make a click event
-    //for (var index = 0; index < pushpins.length-1; index++) {
-    //    var events = Microsoft.Maps.Events.addHandler(pushpins[index], 'click', function () { storePushpinLocation(index); });
-    //}
-    //events;
+    for (let x in pushpins) {
+        Microsoft.Maps.Events.addHandler(pushpins[x], 'click', function () { displayDirections(pushpins[x].geometry.y, pushpins[x].geometry.x); });
+    }//end for 
 }//end function
-function storePushpinLocation(index) {
-    //console.log(`you clicked pin ${pushpins[index].entity.title}`)
-    
+
+function storeFavorite(index) {
     //if a pushpin is clicked, it's data is added to local storage
-    localStorage.setItem(`${locationInfo[index].name}`,
+    localStorage.setItem(`${locationInfo[index].name}${index + 1}`,
         JSON.stringify({ name: `${locationInfo[index].name}`, address: `${locationInfo[index].address}`, phoneNumber: `${locationInfo[index].phoneNumber}`, latitude: `${locationInfo[index].latitude}`, longitude: `${locationInfo[index].longitude}` })
     );
-    var latitude = pushpins[index].geometry.y;
-    var longitude = pushpins[index].geometry.x;
-    var title = pushpins[index].entity.title;
-    displayDirections(latitude, longitude, title);
-}//end function
-var directionsManager;
-function displayDirections(latitude, longitude, title) {
+}
 
+function displayDirections(latitude, longitude) {
+    
+    if (routeOn == true) {
+        directionsManager.clearAll();
+    }
     //Load the directions module.
     Microsoft.Maps.loadModule('Microsoft.Maps.Directions', function () {
-        //directionsManager.clearAll(); maybe works
-        //Create an instance of the directions manager.
-        directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map);
         
+        //Create an instance of the directions manager.
+        directionsManager = new Microsoft.Maps.Directions.DirectionsManager(map);       
 
         //Create waypoints to route between.
         var yourWaypoint = new Microsoft.Maps.Directions.Waypoint({ address: 'Your Location', location: new Microsoft.Maps.Location(lat, long) });
@@ -276,18 +196,12 @@ function displayDirections(latitude, longitude, title) {
         directionsManager.setRenderOptions({ itineraryContainer: '#directions-panel' });
 
         //Calculate directions.
-        directionsManager.calculateDirections();
-        
+        directionsManager.calculateDirections();       
     });
+    routeOn = true;
     
 }//end function
-//function test() {
-//    var i = 0, entity;
-//    while (i < map.entities.getLength()) {
-//        entity = map.entities.get(i);
-//        i += 1;
-//    }
-//}
+
 
 function clearLocalStroage() {
     localStorage.clear();
@@ -302,11 +216,20 @@ function updateLocalStorage() {
 
         values.push(localStorage.getItem(keys[i]));
     }//end while
+    storageHTML = ['<table>'];
     for (var index = 0; index < values.length; index++) {
         if (values[index][0] == "{") {
             jsonParse = JSON.parse(values[index]);
-            previousVisit += `NAME: ${jsonParse.name}, PHONENUMBER: ${jsonParse.phoneNumber}, ADDRESS: ${jsonParse.address}, LATITUDE: ${jsonParse.latitude}, LONGITUDE: ${jsonParse.longitude}` + "<br/>";
+            storageHTML.push(`<tr><td><button onclick="displayDirections(${jsonParse.latitude}, ${jsonParse.longitude})" id="directions">Get Directions</button></td>`);
+            storageHTML.push(`<td>${jsonParse.name} --- ${jsonParse.address} --- ${jsonParse.phoneNumber}</td>`);
+            //previousVisit += `NAME: ${jsonParse.name}, PHONENUMBER: ${jsonParse.phoneNumber}, ADDRESS: ${jsonParse.address}, LATITUDE: ${jsonParse.latitude}, LONGITUDE: ${jsonParse.longitude}` + "<br/>";
         }//end if
     }//end for
-    storageDiv.innerHTML = previousVisit;
+
+    //Add closing tag to HTML table 
+    storageHTML.push('</table>');
+
+    //Display new results onto HTML 
+    storageDiv.innerHTML = storageHTML.join('');
+
 }//end function
